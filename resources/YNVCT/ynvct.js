@@ -421,9 +421,29 @@ async function runYNVCTImport() {
 
     const result = await saveToShiguang(curriculumJson);
 
+    let autoSyncEnabled = false;
+    if (
+      window.Qzh5SyncBridge &&
+      typeof window.Qzh5SyncBridge.enableAutoSync === "function"
+    ) {
+      const targetTableId =
+        typeof window.currentTableId === "string"
+          ? window.currentTableId
+          : "";
+
+      autoSyncEnabled = window.Qzh5SyncBridge.enableAutoSync(
+        credentials.userNo,
+        credentials.encryptedPwd,
+        targetTableId
+      ) === true;
+    }
+
     let message = "成功导入 " + result.courses.length + " 条课程";
     if (result.config && result.config.semesterStartDate) {
       message += "，开学日期 " + result.config.semesterStartDate;
+    }
+    if (autoSyncEnabled) {
+      message += "，已开启每2小时自动同步";
     }
 
     window.shiguangBridge.showToast(message);
