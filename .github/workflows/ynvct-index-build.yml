@@ -1,0 +1,50 @@
+name: YNVCT School Index Build
+
+on:
+  push:
+    branches:
+      - ynvct-integration
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-index:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout integration branch
+        uses: actions/checkout@v4
+        with:
+          ref: ynvct-integration
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml protobuf
+
+      - name: Build complete school index
+        run: python scripts/build_data.py
+
+      - name: Publish school_index.pb
+        run: |
+          test -f school_index.pb
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          TMP_DIR=$(mktemp -d)
+          cp school_index.pb "$TMP_DIR/school_index.pb"
+
+          git checkout --orphan index-pb-release-temp
+          git rm -rf .
+          cp "$TMP_DIR/school_index.pb" ./school_index.pb
+          git add school_index.pb
+          git commit -m "Release YNVCT school index [skip ci]"
+          git branch -M index-pb-release
+          git push --force origin index-pb-release
