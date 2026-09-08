@@ -15,7 +15,7 @@ const YNVCT = {
 
 function validateUserNo(input) {
   const value = String(input == null ? "" : input).trim();
-  if (!/^\\d{6,20}$/.test(value)) return "请输入正确的学号";
+  if (!/^\d{6,20}$/.test(value)) return "请输入正确的学号";
   return false;
 }
 
@@ -137,7 +137,7 @@ function parseSections(course) {
     course.sections ||
     "";
 
-  const matches = String(raw).match(/\\d+/g) || [];
+  const matches = String(raw).match(/\d+/g) || [];
   let sections = matches
     .map(function (v) {
       let n = Number(v);
@@ -181,14 +181,14 @@ function parseWeekExpression(value) {
     .replace(/）/g, ")")
     .replace(/[～~—–－]/g, "-")
     .replace(/至|到/g, "-")
-    .replace(/\\s+/g, "");
+    .replace(/\s+/g, "");
 
   let parity = null;
-  if (/\\(单\\)|单周/.test(s)) parity = "odd";
-  if (/\\(双\\)|双周/.test(s)) parity = "even";
+  if (/\(单\)|单周/.test(s)) parity = "odd";
+  if (/\(双\)|双周/.test(s)) parity = "even";
 
   s = s
-    .replace(/\\(单\\)|\\(双\\)|单周|双周|周/g, "")
+    .replace(/\(单\)|\(双\)|单周|双周|周/g, "")
     .replace(/^,+|,+$/g, "");
 
   const result = [];
@@ -196,7 +196,7 @@ function parseWeekExpression(value) {
   s.split(",").forEach(function (part) {
     if (!part) return;
 
-    const range = /^(\\d+)-(\\d+)$/.exec(part);
+    const range = /^(\d+)-(\d+)$/.exec(part);
     if (range) {
       const start = Number(range[1]);
       const end = Number(range[2]);
@@ -204,7 +204,7 @@ function parseWeekExpression(value) {
       return;
     }
 
-    if (/^\\d+$/.test(part)) {
+    if (/^\d+$/.test(part)) {
       const n = Number(part);
       if (parity === "odd" && n % 2 === 0) return;
       if (parity === "even" && n % 2 !== 0) return;
@@ -225,7 +225,7 @@ function parseWeeks(course) {
   const details = String(course.classWeekDetails || "").trim();
 
   if (details) {
-    const weeks = (details.match(/\\d+/g) || [])
+    const weeks = (details.match(/\d+/g) || [])
       .map(Number)
       .filter(function (n) {
         return Number.isInteger(n) && n >= 1 && n <= 60;
@@ -245,7 +245,7 @@ function parseWeeks(course) {
 }
 
 function isTime(value) {
-  return /^([01]\\d|2[0-3]):[0-5]\\d$/.test(String(value || ""));
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value || ""));
 }
 
 function convertCourses(curriculumJson) {
@@ -298,7 +298,7 @@ function convertCourses(curriculumJson) {
 }
 
 function parseDateOnly(value) {
-  const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(String(value || ""));
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
   if (!match) return null;
 
   return new Date(Date.UTC(
