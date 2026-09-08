@@ -1,424 +1,465 @@
-// 文件: school.js
-
-// 1. 显示一个公告信息弹窗
-async function demoAlert() {
-    try {
-        console.log("即将显示公告弹窗...");
-        const confirmed = await window.shiguangBridgePromise.showAlert(
-            "重要通知",
-            "这是一个弹窗示例。",
-            "好的"
-        );
-        if (confirmed) {
-            console.log("用户点击了确认按钮。Alert Promise Resolved: " + confirmed);
-            shiguangBridge.showToast("Alert：用户点击了确认！");
-            return true; // 成功时返回 true
-        } else {
-            console.log("用户点击了取消按钮或关闭了弹窗。Alert Promise Resolved: " + confirmed);
-            shiguangBridge.showToast("Alert：用户取消了！");
-            return false; // 用户取消时返回 false
-        }
-    } catch (error) {
-        console.error("显示公告弹窗时发生错误:", error);
-        shiguangBridge.showToast("Alert：显示弹窗出错！" + error.message);
-        return false; // 出现错误时也返回 false
-    }
-}
-
-// 2. 显示带输入框的弹窗，并进行简单验证
-function validateName(name) {
-    if (name === null || name.trim().length === 0) {
-        return "输入不能为空！";
-    }
-    if (name.length < 2) {
-        return "姓名至少需要2个字符！";
-    }
-    return false;
-}
-
-async function demoPrompt() {
-    try {
-        console.log("即将显示输入框弹窗...");
-        const name = await window.shiguangBridgePromise.showPrompt(
-            "输入你的姓名",
-            "请输入至少2个字符",
-            "测试用户",
-            "validateName"
-        );
-        if (name !== null) {
-            console.log("用户输入的姓名是: " + name);
-            shiguangBridge.showToast("欢迎你，" + name + "！");
-            return true; // 成功时返回 true
-        } else {
-            console.log("用户取消了输入。");
-            shiguangBridge.showToast("Prompt：用户取消了输入！");
-            return false; // 用户取消时返回 false
-        }
-    } catch (error) {
-        console.error("显示输入框弹窗时发生错误:", error);
-        shiguangBridge.showToast("Prompt：显示输入框出错！" + error.message);
-        return false; // 出现错误时也返回 false
-    }
-}
-
-// 3. 显示一个单选列表弹窗
-async function demoSingleSelection() {
-    const fruits = ["苹果", "香蕉", "橙子", "葡萄", "西瓜", "芒果"];
-    try {
-        console.log("即将显示单选列表弹窗...");
-        const selectedIndex = await window.shiguangBridgePromise.showSingleSelection(
-            "选择你喜欢的水果",
-            JSON.stringify(fruits),
-            2
-        );
-        if (selectedIndex !== null && selectedIndex >= 0 && selectedIndex < fruits.length) {
-            console.log("用户选择了: " + fruits[selectedIndex] + " (索引: " + selectedIndex + ")");
-            shiguangBridge.showToast("你选择了 " + fruits[selectedIndex]);
-            return true; // 成功时返回 true
-        } else {
-            console.log("用户取消了选择。");
-            shiguangBridge.showToast("Single Selection：用户取消了选择！");
-            return false; // 用户取消时返回 false
-        }
-    } catch (error) {
-        console.error("显示单选列表弹窗时发生错误:", error);
-        shiguangBridge.showToast("Single Selection：显示列表出错！" + error.message);
-        return false; // 出现错误时也返回 false
-    }
-}
-
-// 4. 导入课程数据
-async function demoSaveCourses() {
-    console.log("正在准备测试课程数据...");
-    const testCourses = [
-    {
-        "name": "高等数学",
-        "teacher": "张教授",
-        "position": "教101",
-        "day": 1,
-        "startSection": 1,
-        "endSection": 2,
-        "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-    },
-    {
-        "name": "测试自定义课程1",
-        "teacher": "测试老师1",
-        "position": "测试教室1",
-        "day": 1,
-        "isCustomTime": true,
-        "customStartTime": "08:00",
-        "customEndTime": "09:00",
-        "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-    },
-    {
-        "name": "测试自定义课程2",
-        "teacher": "测试老师2",
-        "position": "测试教室2",
-        "day": 3,
-        "isCustomTime": true,
-        "customStartTime": "06:00",
-        "customEndTime": "12:00",
-        "weeks": [3, 5, 7, 9, 11, 13, 15]
-    },
-    {
-        "name": "大学英语",
-        "teacher": "李老师",
-        "position": "文史楼203",
-        "day": 1,
-        "startSection": 2,
-        "endSection": 4,
-        "weeks": [1, 3, 5, 7, 9, 11, 13, 15, 17, 19]
-    },
-    {
-        "name": "数据结构",
-        "teacher": "王副教授",
-        "position": "信息楼B301",
-        "day": 7,
-        "startSection": 2,
-        "endSection": 2,
-        "weeks": [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
-    },
-    {
-        "name": "数据结构",
-        "teacher": "王副教授",
-        "position": "信息楼B301",
-        "day": 7,
-        "startSection": 3,
-        "endSection": 3,
-        "weeks": [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
-    },
-    {
-        "name": "数据结构",
-        "teacher": "王副教授",
-        "position": "信息楼B301",
-        "day": 7,
-        "startSection": 4,
-        "endSection": 4,
-        "weeks": [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
-    },
-    {
-        "name": "数据结构",
-        "teacher": "王副教授",
-        "position": "信息楼B301",
-        "day": 7,
-        "startSection": 5,
-        "endSection": 5,
-        "weeks": [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
-    },
-    {
-        "name": "数据结构",
-        "teacher": "王副教授",
-        "position": "信息楼B301",
-        "day": 7,
-        "startSection": 6,
-        "endSection": 6,
-        "weeks": [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
-    },
-    {
-        "name": "计算机组成原理",
-        "teacher": "赵教授",
-        "position": "实验楼401",
-        "day": 4,
-        "startSection": 4,
-        "endSection": 4,
-        "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-    },
-    {
-        "name": "操作系统",
-        "teacher": "钱副教授",
-        "position": "信息楼C205",
-        "day": 5,
-        "startSection": 5,
-        "endSection": 5,
-        "weeks": [1, 3, 5, 7, 9, 11, 13, 15, 17, 19]
-    },
-    {
-        "name": "计算机网络",
-        "teacher": "孙教授",
-        "position": "信息楼D103",
-        "day": 6,
-        "startSection": 6,
-        "endSection": 6,
-        "weeks": [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
-    },
-    {
-        "name": "软件工程",
-        "teacher": "周副教授",
-        "position": "创新楼301",
-        "day": 7,
-        "startSection": 7,
-        "endSection": 7,
-        "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-    },
-    {
-        "name": "数据库原理",
-        "teacher": "吴教授",
-        "position": "信息楼E201",
-        "day": 1,
-        "startSection": 8,
-        "endSection": 8,
-        "weeks": [1, 3, 5, 7, 9, 11, 13, 15, 17, 19]
-    },
-    {
-        "name": "人工智能",
-        "teacher": "郑副教授",
-        "position": "智能楼101",
-        "day": 2,
-        "startSection": 9,
-        "endSection": 9,
-        "weeks": [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
-    },
-    {
-        "name": "机器学习",
-        "teacher": "冯教授",
-        "position": "智能楼203",
-        "day": 3,
-        "startSection": 10,
-        "endSection": 10,
-        "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-    },
-    {
-        "name": "编译原理",
-        "teacher": "陈副教授",
-        "position": "信息楼F105",
-        "day": 4,
-        "startSection": 11,
-        "endSection": 11,
-        "weeks": [1, 3, 5, 7, 9, 11, 13, 15, 17, 19]
-    },
-    {
-        "name": "计算机图形学",
-        "teacher": "褚教授",
-        "position": "图形楼301",
-        "day": 5,
-        "startSection": 12,
-        "endSection": 12,
-        "weeks": [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
-    },
-    {
-        "name": "网络安全",
-        "teacher": "卫副教授",
-        "position": "安全楼201",
-        "day": 6,
-        "startSection": 13,
-        "endSection": 13,
-        "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-    },
-    {
-        "name": "分布式系统",
-        "teacher": "蒋教授",
-        "position": "云楼101",
-        "day": 7,
-        "startSection": 14,
-        "endSection": 14,
-        "weeks": [1, 3, 5, 7, 9, 11, 13, 15, 17, 19]
-    },
-    {
-        "name": "大数据技术",
-        "teacher": "沈副教授",
-        "position": "数据楼301",
-        "day": 1,
-        "startSection": 15,
-        "endSection": 15,
-        "weeks": [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
-    },
-    {
-        "name": "物联网技术",
-        "teacher": "韩教授",
-        "position": "物联楼201",
-        "day": 2,
-        "startSection": 16,
-        "endSection": 16,
-        "weeks": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-    }
-    ];
-
-    try {
-        console.log("正在尝试导入课程...");
-        const result = await window.shiguangBridgePromise.saveImportedCourses(JSON.stringify(testCourses));
-        if (result === true) {
-            console.log("课程导入成功！");
-            shiguangBridge.showToast("测试课程导入成功！");
-        } else {
-            console.log("课程导入未成功，结果：" + result);
-            shiguangBridge.showToast("测试课程导入失败，请查看日志。");
-        }
-    } catch (error) {
-        console.error("导入课程时发生错误:", error);
-        shiguangBridge.showToast("导入课程失败: " + error.message);
-    }
-}
-
-// 5. 导入预设时间段
-async function importPresetTimeSlots() {
-    console.log("正在准备预设时间段数据...");
-    const presetTimeSlots = [
-        { "number": 1, "startTime": "07:00", "endTime": "07:40" },
-        { "number": 2, "startTime": "07:45", "endTime": "08:25" },
-        { "number": 3, "startTime": "08:30", "endTime": "09:10" },
-        { "number": 4, "startTime": "09:15", "endTime": "09:55" },
-        { "number": 5, "startTime": "10:15", "endTime": "10:55" },
-        { "number": 6, "startTime": "11:00", "endTime": "11:40" },
-        { "number": 7, "startTime": "11:45", "endTime": "12:25" },
-        { "number": 8, "startTime": "12:30", "endTime": "13:10" },
-        { "number": 9, "startTime": "13:30", "endTime": "14:10" },
-        { "number": 10, "startTime": "14:15", "endTime": "14:55" },
-        { "number": 11, "startTime": "15:00", "endTime": "15:40" },
-        { "number": 12, "startTime": "15:45", "endTime": "16:25" },
-        { "number": 13, "startTime": "16:45", "endTime": "17:25" },
-        { "number": 14, "startTime": "17:30", "endTime": "18:10" },
-        { "number": 15, "startTime": "18:15", "endTime": "18:55" },
-        { "number": 16, "startTime": "19:00", "endTime": "19:40" }
-    ];
-
-    try {
-        console.log("正在尝试导入预设时间段...");
-        const result = await window.shiguangBridgePromise.savePresetTimeSlots(JSON.stringify(presetTimeSlots));
-        if (result === true) {
-            console.log("预设时间段导入成功！");
-            window.shiguangBridge.showToast("测试时间段导入成功！");
-        } else {
-            console.log("预设时间段导入未成功，结果：" + result);
-            window.shiguangBridge.showToast("测试时间段导入失败，请查看日志。");
-        }
-    } catch (error) {
-        console.error("导入时间段时发生错误:", error);
-        window.shiguangBridge.showToast("导入时间段失败: " + error.message);
-    }
-}
-
-// 6. 导入课表配置
-async function demoSaveConfig() {
-    console.log("正在准备配置数据...");
-    // 注意：只传入要修改的字段，其他字段（如 semesterTotalWeeks）会使用 Kotlin 模型中的默认值
-    const courseConfigData = {
-        "semesterStartDate": null,
-        "semesterTotalWeeks": 18,
-        "defaultClassDuration": 50,
-        "defaultBreakDuration": 5,
-        "firstDayOfWeek": 7
-    };
-
-    try {
-        console.log("正在尝试导入课表配置...");
-        const configJsonString = JSON.stringify(courseConfigData);
-
-        const result = await window.shiguangBridgePromise.saveCourseConfig(configJsonString);
-
-        if (result === true) {
-            console.log("课表配置导入成功！");
-            shiguangBridge.showToast("测试配置导入成功");
-        } else {
-            console.log("课表配置导入未成功，结果：" + result);
-            shiguangBridge.showToast("测试配置导入失败，请查看日志。");
-        }
-    } catch (error) {
-        console.error("导入配置时发生错误:", error);
-        shiguangBridge.showToast("导入配置失败: " + error.message);
-    }
-}
-
-
-shiguangBridge.showToast("这是一个来自 JS 的 Toast 消息，会很快消失！");
-
 /**
- * 编排这些异步操作，并在用户取消时停止后续执行。
+ * 云南交通职业技术学院 qzh5 -> 拾光课程表 v2
+ * 
+ * 安全说明：
+ * - 不在仓库中保存任何学号、密码或 token。
+ * - 当前 qzh5 登录接口使用 encode=1，因此需要输入抓包中 login 请求的加密 pwd。
+ * - 后续确认前端明文密码加密算法后，可改成直接输入普通密码。
  */
-async function runAllDemosSequentially() {
-    shiguangBridge.showToast("所有演示将按顺序开始...");
 
-    // 1. 运行第一个演示：Alert
-    const alertResult = await demoAlert();
-    if (!alertResult) {
-        console.log("用户取消了 Alert 演示，停止后续执行。");
-        return; // 用户取消，立即退出函数
-    }
+const YNVCT = {
+  loginUrl: "https://qzh5.ynvct.com/bzb_njwhd/login",
+  curriculumUrl: "https://qzh5.ynvct.com/bzb_njwhd/student/curriculum",
+  kbjcmsid: "F144CF7B11C446FAA4F813BCE82A79E3"
+};
 
-    // 2. 运行第二个演示：Prompt
-    const promptResult = await demoPrompt();
-    if (!promptResult) {
-        console.log("用户取消了 Prompt 演示，停止后续执行。");
-        return; // 用户取消，立即退出函数
-    }
-
-    // 3. 运行第三个演示：SingleSelection
-    const selectionResult = await demoSingleSelection();
-    if (!selectionResult) {
-        console.log("用户取消了 Single Selection 演示，停止后续执行。");
-        return; // 用户取消，立即退出函数
-    }
-
-    console.log("所有弹窗演示已完成。");
-    shiguangBridge.showToast("所有弹窗演示已完成！");
-
-    // 以下是数据导入，与用户交互无关，可以继续
-    await demoSaveCourses();
-    await importPresetTimeSlots();
-    await demoSaveConfig();
-
-    // 发送最终的生命周期完成信号
-    shiguangBridge.notifyTaskCompletion();
+function validateUserNo(input) {
+  const value = String(input == null ? "" : input).trim();
+  if (!/^\d{6,20}$/.test(value)) return "请输入正确的学号";
+  return false;
 }
 
-// 启动所有演示
-runAllDemosSequentially();
+function validateEncryptedPwd(input) {
+  const value = String(input == null ? "" : input).trim();
+  if (!value) return "加密 pwd 不能为空";
+  return false;
+}
+
+async function getCredentials() {
+  const userNo = await window.shiguangBridgePromise.showPrompt(
+    "学号",
+    "请输入 qzh5 登录学号",
+    "",
+    "validateUserNo"
+  );
+  if (userNo === null) return null;
+
+  const encryptedPwd = await window.shiguangBridgePromise.showPrompt(
+    "加密 pwd",
+    "请输入抓包中 /bzb_njwhd/login 请求里的 pwd 参数（不是明文密码）",
+    "",
+    "validateEncryptedPwd"
+  );
+  if (encryptedPwd === null) return null;
+
+  return {
+    userNo: String(userNo).trim(),
+    encryptedPwd: String(encryptedPwd).trim()
+  };
+}
+
+async function loginQzh5(userNo, encryptedPwd) {
+  const body = new URLSearchParams();
+  body.set("userNo", userNo);
+  body.set("pwd", encryptedPwd);
+  body.set("encode", "1");
+  body.set("captchaData", "");
+  body.set("codeVal", "");
+
+  const response = await fetch(YNVCT.loginUrl, {
+    method: "POST",
+    headers: {
+      "Accept": "application/json, text/plain, */*",
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    credentials: "include",
+    body: body.toString()
+  });
+
+  if (!response.ok) {
+    throw new Error("登录接口 HTTP " + response.status);
+  }
+
+  const json = await response.json();
+
+  if (
+    String(json.code) !== "1" ||
+    !json.data ||
+    !json.data.token
+  ) {
+    throw new Error(json.Msg || json.msg || "qzh5 登录失败");
+  }
+
+  return json;
+}
+
+async function fetchCurriculum(token) {
+  const url =
+    YNVCT.curriculumUrl +
+    "?week=&kbjcmsid=" +
+    encodeURIComponent(YNVCT.kbjcmsid);
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Accept": "application/json, text/plain, */*",
+      "token": token
+    },
+    credentials: "include"
+  });
+
+  if (!response.ok) {
+    throw new Error("课程表接口 HTTP " + response.status);
+  }
+
+  const json = await response.json();
+
+  if (
+    String(json.code) !== "1" ||
+    !Array.isArray(json.data) ||
+    !json.data[0]
+  ) {
+    throw new Error(json.Msg || json.msg || "课程表获取失败");
+  }
+
+  return json;
+}
+
+function normalizeDay(value) {
+  const s = String(value == null ? "" : value).trim();
+
+  if (/^[1-7]$/.test(s)) return Number(s);
+  if (s === "0") return 7;
+
+  const map = {
+    "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "日": 7, "天": 7,
+    "周一": 1, "周二": 2, "周三": 3, "周四": 4, "周五": 5, "周六": 6, "周日": 7,
+    "星期一": 1, "星期二": 2, "星期三": 3, "星期四": 4, "星期五": 5, "星期六": 6, "星期日": 7
+  };
+
+  return map[s] || 0;
+}
+
+function parseSections(course) {
+  const raw =
+    course.weekNoteDetail ||
+    course.classTime ||
+    course.sections ||
+    "";
+
+  const matches = String(raw).match(/\d+/g) || [];
+  let sections = matches
+    .map(function (v) {
+      let n = Number(v);
+
+      // qzh5: 101/102 = 周一第1/2节，203/204 = 周二第3/4节
+      if (n >= 100) n = n % 100;
+      return n;
+    })
+    .filter(function (n) {
+      return Number.isInteger(n) && n >= 1 && n <= 30;
+    });
+
+  sections = Array.from(new Set(sections)).sort(function (a, b) {
+    return a - b;
+  });
+
+  if (!sections.length) return null;
+
+  return {
+    start: sections[0],
+    end: sections[sections.length - 1]
+  };
+}
+
+function expandRange(start, end, parity) {
+  const result = [];
+  for (let i = start; i <= end; i++) {
+    if (parity === "odd" && i % 2 === 0) continue;
+    if (parity === "even" && i % 2 !== 0) continue;
+    result.push(i);
+  }
+  return result;
+}
+
+function parseWeekExpression(value) {
+  let s = String(value == null ? "" : value).trim();
+  if (!s) return [];
+
+  s = s
+    .replace(/（/g, "(")
+    .replace(/）/g, ")")
+    .replace(/[～~—–－]/g, "-")
+    .replace(/至|到/g, "-")
+    .replace(/\s+/g, "");
+
+  let parity = null;
+  if (/\(单\)|单周/.test(s)) parity = "odd";
+  if (/\(双\)|双周/.test(s)) parity = "even";
+
+  s = s
+    .replace(/\(单\)|\(双\)|单周|双周|周/g, "")
+    .replace(/^,+|,+$/g, "");
+
+  const result = [];
+
+  s.split(",").forEach(function (part) {
+    if (!part) return;
+
+    const range = /^(\d+)-(\d+)$/.exec(part);
+    if (range) {
+      const start = Number(range[1]);
+      const end = Number(range[2]);
+      result.push.apply(result, expandRange(Math.min(start, end), Math.max(start, end), parity));
+      return;
+    }
+
+    if (/^\d+$/.test(part)) {
+      const n = Number(part);
+      if (parity === "odd" && n % 2 === 0) return;
+      if (parity === "even" && n % 2 !== 0) return;
+      result.push(n);
+    }
+  });
+
+  return Array.from(new Set(result))
+    .filter(function (n) {
+      return Number.isInteger(n) && n >= 1 && n <= 60;
+    })
+    .sort(function (a, b) {
+      return a - b;
+    });
+}
+
+function parseWeeks(course) {
+  const details = String(course.classWeekDetails || "").trim();
+
+  if (details) {
+    const weeks = (details.match(/\d+/g) || [])
+      .map(Number)
+      .filter(function (n) {
+        return Number.isInteger(n) && n >= 1 && n <= 60;
+      });
+
+    return Array.from(new Set(weeks)).sort(function (a, b) {
+      return a - b;
+    });
+  }
+
+  return parseWeekExpression(
+    course.classWeek ||
+    course.weeks ||
+    course.week ||
+    ""
+  );
+}
+
+function isTime(value) {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value || ""));
+}
+
+function convertCourses(curriculumJson) {
+  const rawCourses =
+    curriculumJson &&
+    curriculumJson.data &&
+    curriculumJson.data[0] &&
+    Array.isArray(curriculumJson.data[0].courses)
+      ? curriculumJson.data[0].courses
+      : [];
+
+  return rawCourses
+    .map(function (course) {
+      const sections = parseSections(course);
+      const weeks = parseWeeks(course);
+      const day = normalizeDay(
+        course.weekDay != null
+          ? course.weekDay
+          : (course.weekday != null ? course.weekday : course.day)
+      );
+
+      const startTime = course.startTime || "";
+      const endTime = course.endTIme || course.endTime || "";
+      const hasCustomTime = isTime(startTime) && isTime(endTime);
+
+      if (!course.courseName || !sections || !weeks.length || !day) {
+        console.warn("[YNVCT] 跳过无法解析的课程", course);
+        return null;
+      }
+
+      return {
+        name: String(course.courseName || "").trim(),
+        teacher: String(course.teacherName || course.teacher || "").trim(),
+        position: String(
+          course.classroomName ||
+          course.location ||
+          course.position ||
+          ""
+        ).trim(),
+        day: day,
+        startSection: sections.start,
+        endSection: sections.end,
+        weeks: weeks,
+        isCustomTime: hasCustomTime,
+        customStartTime: hasCustomTime ? startTime : null,
+        customEndTime: hasCustomTime ? endTime : null
+      };
+    })
+    .filter(Boolean);
+}
+
+function parseDateOnly(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+  if (!match) return null;
+
+  return new Date(Date.UTC(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3])
+  ));
+}
+
+function formatDateOnly(date) {
+  return (
+    date.getUTCFullYear() +
+    "-" +
+    String(date.getUTCMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(date.getUTCDate()).padStart(2, "0")
+  );
+}
+
+function buildCourseConfig(curriculumJson) {
+  const root =
+    curriculumJson &&
+    curriculumJson.data &&
+    curriculumJson.data[0]
+      ? curriculumJson.data[0]
+      : null;
+
+  if (!root) return null;
+
+  const top =
+    Array.isArray(root.topInfo) && root.topInfo.length
+      ? root.topInfo[0]
+      : null;
+
+  if (!top) return null;
+
+  const currentWeek = Number(top.week || root.week);
+  const maxWeek = Number(top.maxWeek);
+  const today = parseDateOnly(top.today);
+
+  if (!today || !Number.isInteger(currentWeek) || currentWeek < 1) {
+    return null;
+  }
+
+  // 先算当前周周一，再回退到第1周周一。
+  const jsDay = today.getUTCDay();
+  const daysFromMonday = jsDay === 0 ? 6 : jsDay - 1;
+
+  const currentMonday = new Date(
+    today.getTime() - daysFromMonday * 86400000
+  );
+
+  const semesterStart = new Date(
+    currentMonday.getTime() -
+    (currentWeek - 1) * 7 * 86400000
+  );
+
+  const result = {
+    semesterStartDate: formatDateOnly(semesterStart),
+    firstDayOfWeek: 1
+  };
+
+  if (Number.isInteger(maxWeek) && maxWeek > 0) {
+    result.semesterTotalWeeks = maxWeek;
+  }
+
+  return result;
+}
+
+async function saveToShiguang(curriculumJson) {
+  const courses = convertCourses(curriculumJson);
+
+  if (!courses.length) {
+    throw new Error("没有解析到可导入的课程");
+  }
+
+  const config = buildCourseConfig(curriculumJson);
+
+  if (config) {
+    await window.shiguangBridgePromise.saveCourseConfig(
+      JSON.stringify(config)
+    );
+  }
+
+  const saved = await window.shiguangBridgePromise.saveImportedCourses(
+    JSON.stringify(courses)
+  );
+
+  if (saved !== true) {
+    throw new Error("拾光返回课程保存失败");
+  }
+
+  return {
+    courses: courses,
+    config: config
+  };
+}
+
+async function runYNVCTImport() {
+  try {
+    const confirmed = await window.shiguangBridgePromise.showAlert(
+      "云南交通职业技术学院",
+      "将通过 qzh5 移动教务接口登录并直接获取课程表。\n\n当前版本需要输入抓包得到的加密 pwd。",
+      "开始导入"
+    );
+
+    if (!confirmed) return;
+
+    const credentials = await getCredentials();
+    if (!credentials) return;
+
+    window.shiguangBridge.showToast("正在登录 qzh5…");
+    const loginJson = await loginQzh5(
+      credentials.userNo,
+      credentials.encryptedPwd
+    );
+
+    window.shiguangBridge.showToast("登录成功，正在获取课程表…");
+    const curriculumJson = await fetchCurriculum(loginJson.data.token);
+
+    const result = await saveToShiguang(curriculumJson);
+
+    let autoSyncEnabled = false;
+    if (
+      window.Qzh5SyncBridge &&
+      typeof window.Qzh5SyncBridge.enableAutoSync === "function"
+    ) {
+      const targetTableId =
+        typeof window.currentTableId === "string"
+          ? window.currentTableId
+          : "";
+
+      autoSyncEnabled = window.Qzh5SyncBridge.enableAutoSync(
+        credentials.userNo,
+        credentials.encryptedPwd,
+        targetTableId
+      ) === true;
+    }
+
+    let message = "成功导入 " + result.courses.length + " 条课程";
+    if (result.config && result.config.semesterStartDate) {
+      message += "，开学日期 " + result.config.semesterStartDate;
+    }
+    if (autoSyncEnabled) {
+      message += "，已开启每2小时自动同步";
+    }
+
+    window.shiguangBridge.showToast(message);
+    window.shiguangBridge.notifyTaskCompletion();
+  } catch (error) {
+    console.error("[YNVCT]", error);
+    window.shiguangBridge.showToast(
+      "导入失败：" + (error && error.message ? error.message : String(error))
+    );
+  }
+}
+
+if (location.hostname === "qzh5.ynvct.com") {
+  runYNVCTImport();
+} else {
+  window.shiguangBridge.showToast(
+    "请先在顶部地址栏打开 https://qzh5.ynvct.com/sjd/，页面加载完成后再点“执行导入”"
+  );
+}
