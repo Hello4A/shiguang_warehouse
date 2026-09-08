@@ -1,0 +1,9 @@
+# resources/YNVCT/adapters.yaml
+adapters:
+  - adapter_id: "YNVCT_01"
+    adapter_name: "云南交通职业技术学院 qzh5"
+    category: "BACHELOR_AND_ASSOCIATE"
+    asset_js_path: "ynvct.js"
+    import_url: "https://qzh5.ynvct.com/sjd/"
+    maintainer: "Hello4A"
+    description: "通过 qzh5 移动教务接口登录并直接导入课程表；当前需输入抓包得到的加密 pwd。"
