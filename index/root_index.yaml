@@ -1027,3 +1027,8 @@ schools:
     name: "西安建筑科技大学"
     initial: "X"
     resource_folder: "XAUAT"
+
+  - id: "YNVCT"
+    name: "云南交通职业技术学院"
+    initial: "Y"
+    resource_folder: "YNVCT"
