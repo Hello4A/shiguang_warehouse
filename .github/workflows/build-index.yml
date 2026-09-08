@@ -2,7 +2,9 @@ name: 生成 Protobuf 数据索引
 
 on:
   workflow_dispatch:
-
+  push:
+    branches:
+      - ynvct-integration
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
