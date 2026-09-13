@@ -1,10 +1,9 @@
 /**
  * 云南交通职业技术学院 qzh5 -> 拾光课程表 v2
- * 
- * 安全说明：
- * - 不在仓库中保存任何学号、密码或 token。
- * - 当前 qzh5 登录接口使用 encode=1，因此需要输入抓包中 login 请求的加密 pwd。
- * - 后续确认前端明文密码加密算法后，可改成直接输入普通密码。
+ *
+ * 重要：
+ * qzh5 的 curriculum 接口按 week 返回“该周快照”，不是整学期总课表。
+ * 因此本适配器会遍历 1..maxWeek，再按课程块合并实际出现周次。
  */
 
 const YNVCT = {
@@ -83,11 +82,12 @@ async function loginQzh5(userNo, encryptedPwd) {
   return json;
 }
 
-async function fetchCurriculum(token) {
+async function fetchCurriculumWeek(token, week) {
+  const weekValue = week == null ? "" : String(week);
   const url =
     YNVCT.curriculumUrl +
-    "?week=&kbjcmsid=" +
-    encodeURIComponent(YNVCT.kbjcmsid);
+    "?week=" + encodeURIComponent(weekValue) +
+    "&kbjcmsid=" + encodeURIComponent(YNVCT.kbjcmsid);
 
   const response = await fetch(url, {
     method: "POST",
@@ -109,10 +109,47 @@ async function fetchCurriculum(token) {
     !Array.isArray(json.data) ||
     !json.data[0]
   ) {
-    throw new Error(json.Msg || json.msg || "课程表获取失败");
+    throw new Error(json.Msg || json.msg || "课表获取失败");
   }
 
   return json;
+}
+
+function getFirstData(json) {
+  return json && Array.isArray(json.data) && json.data[0]
+    ? json.data[0]
+    : null;
+}
+
+function getResponseWeek(json, fallbackWeek) {
+  const root = getFirstData(json);
+  if (!root) return fallbackWeek;
+
+  const fromRoot = Number(root.week);
+  if (Number.isInteger(fromRoot) && fromRoot > 0) {
+    return fromRoot;
+  }
+
+  const top = Array.isArray(root.topInfo) && root.topInfo[0]
+    ? root.topInfo[0]
+    : null;
+  const fromTop = Number(top && top.week);
+
+  return Number.isInteger(fromTop) && fromTop > 0
+    ? fromTop
+    : fallbackWeek;
+}
+
+function getMaxWeek(json) {
+  const root = getFirstData(json);
+  const top = root && Array.isArray(root.topInfo) && root.topInfo[0]
+    ? root.topInfo[0]
+    : null;
+
+  const value = Number(top && top.maxWeek);
+  return Number.isInteger(value) && value > 0 && value <= 60
+    ? value
+    : 20;
 }
 
 function normalizeDay(value) {
@@ -138,19 +175,17 @@ function parseSections(course) {
     "";
 
   const matches = String(raw).match(/\d+/g) || [];
-  let sections = matches
-    .map(function (v) {
-      let n = Number(v);
-
-      // qzh5: 101/102 = 周一第1/2节，203/204 = 周二第3/4节
-      if (n >= 100) n = n % 100;
-      return n;
-    })
-    .filter(function (n) {
-      return Number.isInteger(n) && n >= 1 && n <= 30;
-    });
-
-  sections = Array.from(new Set(sections)).sort(function (a, b) {
+  const sections = Array.from(new Set(
+    matches
+      .map(function (v) {
+        let n = Number(v);
+        if (n >= 100) n = n % 100;
+        return n;
+      })
+      .filter(function (n) {
+        return Number.isInteger(n) && n >= 1 && n <= 30;
+      })
+  )).sort(function (a, b) {
     return a - b;
   });
 
@@ -162,139 +197,143 @@ function parseSections(course) {
   };
 }
 
-function expandRange(start, end, parity) {
-  const result = [];
-  for (let i = start; i <= end; i++) {
-    if (parity === "odd" && i % 2 === 0) continue;
-    if (parity === "even" && i % 2 !== 0) continue;
-    result.push(i);
-  }
-  return result;
-}
-
-function parseWeekExpression(value) {
-  let s = String(value == null ? "" : value).trim();
-  if (!s) return [];
-
-  s = s
-    .replace(/（/g, "(")
-    .replace(/）/g, ")")
-    .replace(/[～~—–－]/g, "-")
-    .replace(/至|到/g, "-")
-    .replace(/\s+/g, "");
-
-  let parity = null;
-  if (/\(单\)|单周/.test(s)) parity = "odd";
-  if (/\(双\)|双周/.test(s)) parity = "even";
-
-  s = s
-    .replace(/\(单\)|\(双\)|单周|双周|周/g, "")
-    .replace(/^,+|,+$/g, "");
-
-  const result = [];
-
-  s.split(",").forEach(function (part) {
-    if (!part) return;
-
-    const range = /^(\d+)-(\d+)$/.exec(part);
-    if (range) {
-      const start = Number(range[1]);
-      const end = Number(range[2]);
-      result.push.apply(result, expandRange(Math.min(start, end), Math.max(start, end), parity));
-      return;
-    }
-
-    if (/^\d+$/.test(part)) {
-      const n = Number(part);
-      if (parity === "odd" && n % 2 === 0) return;
-      if (parity === "even" && n % 2 !== 0) return;
-      result.push(n);
-    }
-  });
-
-  return Array.from(new Set(result))
-    .filter(function (n) {
-      return Number.isInteger(n) && n >= 1 && n <= 60;
-    })
-    .sort(function (a, b) {
-      return a - b;
-    });
-}
-
-function parseWeeks(course) {
-  const details = String(course.classWeekDetails || "").trim();
-
-  if (details) {
-    const weeks = (details.match(/\d+/g) || [])
-      .map(Number)
-      .filter(function (n) {
-        return Number.isInteger(n) && n >= 1 && n <= 60;
-      });
-
-    return Array.from(new Set(weeks)).sort(function (a, b) {
-      return a - b;
-    });
-  }
-
-  return parseWeekExpression(
-    course.classWeek ||
-    course.weeks ||
-    course.week ||
-    ""
-  );
-}
-
 function isTime(value) {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value || ""));
 }
 
-function convertCourses(curriculumJson) {
-  const rawCourses =
-    curriculumJson &&
-    curriculumJson.data &&
-    curriculumJson.data[0] &&
-    Array.isArray(curriculumJson.data[0].courses)
-      ? curriculumJson.data[0].courses
-      : [];
+function normalizeCourseForWeek(course, week) {
+  const sections = parseSections(course);
+  const day = normalizeDay(
+    course.weekDay != null
+      ? course.weekDay
+      : (course.weekday != null ? course.weekday : course.day)
+  );
 
-  return rawCourses
-    .map(function (course) {
-      const sections = parseSections(course);
-      const weeks = parseWeeks(course);
-      const day = normalizeDay(
-        course.weekDay != null
-          ? course.weekDay
-          : (course.weekday != null ? course.weekday : course.day)
-      );
+  const name = String(course.courseName || course.name || "").trim();
+  if (!name || !sections || !day || !Number.isInteger(week) || week < 1) {
+    return null;
+  }
 
-      const startTime = course.startTime || "";
-      const endTime = course.endTIme || course.endTime || "";
-      const hasCustomTime = isTime(startTime) && isTime(endTime);
+  const startTime = String(course.startTime || "");
+  const endTime = String(course.endTIme || course.endTime || "");
+  const hasCustomTime = isTime(startTime) && isTime(endTime);
 
-      if (!course.courseName || !sections || !weeks.length || !day) {
-        console.warn("[YNVCT] 跳过无法解析的课程", course);
-        return null;
+  return {
+    name: name,
+    teacher: String(course.teacherName || course.teacher || "").trim(),
+    position: String(
+      course.classroomName ||
+      course.location ||
+      course.position ||
+      ""
+    ).trim(),
+    day: day,
+    startSection: sections.start,
+    endSection: sections.end,
+    weeks: [week],
+    isCustomTime: hasCustomTime,
+    customStartTime: hasCustomTime ? startTime : null,
+    customEndTime: hasCustomTime ? endTime : null
+  };
+}
+
+function courseIdentity(course) {
+  return [
+    course.name,
+    course.teacher,
+    course.position,
+    course.day,
+    course.startSection,
+    course.endSection,
+    course.isCustomTime ? "1" : "0",
+    course.customStartTime || "",
+    course.customEndTime || ""
+  ].join("\u001f");
+}
+
+function mergeWeekIntoMap(map, course) {
+  const key = courseIdentity(course);
+  const existing = map.get(key);
+
+  if (!existing) {
+    map.set(key, course);
+    return;
+  }
+
+  const weeks = Array.from(new Set(
+    existing.weeks.concat(course.weeks)
+  )).sort(function (a, b) {
+    return a - b;
+  });
+
+  existing.weeks = weeks;
+}
+
+async function fetchSemesterCurriculum(token) {
+  const metadata = await fetchCurriculumWeek(token, null);
+  const maxWeek = getMaxWeek(metadata);
+  const courseMap = new Map();
+
+  window.shiguangBridge.showToast(
+    "正在获取整学期课表，共 " + maxWeek + " 周…"
+  );
+
+  const batchSize = 4;
+
+  for (let start = 1; start <= maxWeek; start += batchSize) {
+    const weeks = [];
+    for (let week = start; week < start + batchSize && week <= maxWeek; week++) {
+      weeks.push(week);
+    }
+
+    const responses = await Promise.all(
+      weeks.map(function (week) {
+        return fetchCurriculumWeek(token, week).then(function (json) {
+          return { requestedWeek: week, json: json };
+        });
+      })
+    );
+
+    responses.forEach(function (entry) {
+      const actualWeek = getResponseWeek(entry.json, entry.requestedWeek);
+
+      if (actualWeek !== entry.requestedWeek) {
+        throw new Error(
+          "请求第 " + entry.requestedWeek +
+          " 周，但接口返回第 " + actualWeek + " 周"
+        );
       }
 
-      return {
-        name: String(course.courseName || "").trim(),
-        teacher: String(course.teacherName || course.teacher || "").trim(),
-        position: String(
-          course.classroomName ||
-          course.location ||
-          course.position ||
-          ""
-        ).trim(),
-        day: day,
-        startSection: sections.start,
-        endSection: sections.end,
-        weeks: weeks,
-        isCustomTime: hasCustomTime,
-        customStartTime: hasCustomTime ? startTime : null,
-        customEndTime: hasCustomTime ? endTime : null
-      };
-    })
-    .filter(Boolean);
+      const root = getFirstData(entry.json);
+      const rawCourses = root && Array.isArray(root.courses)
+        ? root.courses
+        : [];
+
+      rawCourses.forEach(function (rawCourse) {
+        const course = normalizeCourseForWeek(rawCourse, actualWeek);
+        if (course) mergeWeekIntoMap(courseMap, course);
+      });
+    });
+
+    const done = Math.min(start + batchSize - 1, maxWeek);
+    window.shiguangBridge.showToast(
+      "整学期课表读取中：" + done + "/" + maxWeek + " 周"
+    );
+  }
+
+  const courses = Array.from(courseMap.values()).sort(function (a, b) {
+    return (
+      a.day - b.day ||
+      a.startSection - b.startSection ||
+      a.name.localeCompare(b.name)
+    );
+  });
+
+  return {
+    metadata: metadata,
+    courses: courses,
+    maxWeek: maxWeek
+  };
 }
 
 function parseDateOnly(value) {
@@ -319,13 +358,7 @@ function formatDateOnly(date) {
 }
 
 function buildCourseConfig(curriculumJson) {
-  const root =
-    curriculumJson &&
-    curriculumJson.data &&
-    curriculumJson.data[0]
-      ? curriculumJson.data[0]
-      : null;
-
+  const root = getFirstData(curriculumJson);
   if (!root) return null;
 
   const top =
@@ -343,7 +376,6 @@ function buildCourseConfig(curriculumJson) {
     return null;
   }
 
-  // 先算当前周周一，再回退到第1周周一。
   const jsDay = today.getUTCDay();
   const daysFromMonday = jsDay === 0 ? 6 : jsDay - 1;
 
@@ -368,14 +400,14 @@ function buildCourseConfig(curriculumJson) {
   return result;
 }
 
-async function saveToShiguang(curriculumJson) {
-  const courses = convertCourses(curriculumJson);
+async function saveToShiguang(semester) {
+  const courses = semester.courses || [];
 
   if (!courses.length) {
     throw new Error("没有解析到可导入的课程");
   }
 
-  const config = buildCourseConfig(curriculumJson);
+  const config = buildCourseConfig(semester.metadata);
 
   if (config) {
     await window.shiguangBridgePromise.saveCourseConfig(
@@ -401,7 +433,7 @@ async function runYNVCTImport() {
   try {
     const confirmed = await window.shiguangBridgePromise.showAlert(
       "云南交通职业技术学院",
-      "将通过 qzh5 移动教务接口登录并直接获取课程表。\n\n当前版本需要输入抓包得到的加密 pwd。",
+      "将按周读取 qzh5 整学期课程，避免遗漏后续周新增课程。\n\n当前版本需要输入抓包得到的加密 pwd。",
       "开始导入"
     );
 
@@ -416,10 +448,11 @@ async function runYNVCTImport() {
       credentials.encryptedPwd
     );
 
-    window.shiguangBridge.showToast("登录成功，正在获取课程表…");
-    const curriculumJson = await fetchCurriculum(loginJson.data.token);
+    const semester = await fetchSemesterCurriculum(
+      loginJson.data.token
+    );
 
-    const result = await saveToShiguang(curriculumJson);
+    const result = await saveToShiguang(semester);
 
     let autoSyncEnabled = false;
     if (
@@ -438,12 +471,16 @@ async function runYNVCTImport() {
       ) === true;
     }
 
-    let message = "成功导入 " + result.courses.length + " 条课程";
+    let message =
+      "成功导入 " + result.courses.length +
+      " 个课程块，已覆盖 " + semester.maxWeek + " 周";
+
     if (result.config && result.config.semesterStartDate) {
       message += "，开学日期 " + result.config.semesterStartDate;
     }
+
     if (autoSyncEnabled) {
-      message += "，已开启每2小时自动同步";
+      message += "，自动同步已开启";
     }
 
     window.shiguangBridge.showToast(message);
@@ -451,7 +488,8 @@ async function runYNVCTImport() {
   } catch (error) {
     console.error("[YNVCT]", error);
     window.shiguangBridge.showToast(
-      "导入失败：" + (error && error.message ? error.message : String(error))
+      "导入失败：" +
+      (error && error.message ? error.message : String(error))
     );
   }
 }
